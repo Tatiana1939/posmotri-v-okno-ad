@@ -275,3 +275,107 @@ video {
   white-space: nowrap;
 }
 
+
+/* Заголовок проекта */
+
+.title {
+  font-family: 'Oswald', sans-serif;
+  font-size: 75px;
+  font-weight: 700;
+  line-height: 0.94;
+  text-transform: uppercase;
+}
+
+.content__accent {
+  color: #545050;
+}
+
+/* Список видеокарточек */
+
+.content__list-container {
+  max-block-size: 320px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.content__list {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.content__list-item {
+  min-inline-size: 0;
+}
+
+.content__card-link {
+  display: block;
+  color: #fff;
+  text-decoration: none;
+  outline: none;
+}
+
+.content__video-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  min-inline-size: 0;
+}
+
+.content__video-card-description-container {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 5px;
+  min-inline-size: 0;
+}
+
+.content__video-card-title {
+  overflow: hidden;
+  font-family: 'Oswald', sans-serif;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+}
+
+.content__video-card-description {
+  overflow: hidden;
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+}
+
+.content__video-card-thumbnail {
+  flex: 0 0 50%;
+  inline-size: 50%;
+  aspect-ratio: 1.5 / 1;
+  object-fit: cover;
+  object-position: center;
+}
+
+/* Состояния карточек */
+
+.content__card-link:hover .content__video-card-title {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.content__card-link:active {
+  background-color: #545050;
+}
+
+.content__card-link:focus-visible {
+  outline: 1px solid #fff;
+  outline-offset: 2px;
+}
+
+.content__card-link_current {
+  outline: 1px solid #fff;
+  outline-offset: 2px;
+}
+
+
