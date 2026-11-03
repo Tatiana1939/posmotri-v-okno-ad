@@ -155,11 +155,40 @@ async function delay(ms) {
 
 // Промис, который резолвится, если видео целиком готово к проинрыванию без пауз
 
-async function waitForReadyVideo(video) {
-  return await new Promise((resolve) => {
-    video.oncanplaythrough = resolve;
+
+function waitForReadyVideo(video) {
+  return new Promise((resolve, reject) => {
+    if (video.readyState >= 3) {
+      resolve();
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error('Превышено время ожидания загрузки видео'));
+    }, 15000);
+
+    function cleanup() {
+      clearTimeout(timeout);
+      video.removeEventListener('canplay', handleReady);
+      video.removeEventListener('error', handleError);
+    }
+
+    function handleReady() {
+      cleanup();
+      resolve();
+    }
+
+    function handleError() {
+      cleanup();
+      reject(new Error('Не удалось загрузить видео'));
+    }
+
+    video.addEventListener('canplay', handleReady, { once: true });
+    video.addEventListener('error', handleError, { once: true });
   });
 }
+
 
 // Устанавливает прелоадер на время загрузки данных ✅
 function showPreloader(tmp, parent) {
@@ -248,6 +277,7 @@ function generateFilterRequest(endpoint, city, timeArray) {
 }
 
 // переключает текущее видео ✅
+
 function chooseCurrentVideo({
   baseUrl,
   videoData,
@@ -255,33 +285,65 @@ function chooseCurrentVideo({
   currentLinkClassName,
   mainVideo,
 }) {
-  const cardsList = document.querySelectorAll(cardLinksSelector);
-  if (cardsList) {
-    cardsList.forEach((item) => {
-      item.onclick = async (e) => {
-        e.preventDefault();
-        cardsList.forEach((item) => {
-          item.classList.remove(currentLinkClassName);
-        });
-        item.classList.add(currentLinkClassName);
-        showPreloader(preloaderTmp, videoContainer);
-        const vidoObj = videoData.find(
-          (video) => String(video.id) === String(item.id)
-        );
+  const cardLinks = document.querySelectorAll(cardLinksSelector);
+
+  cardLinks.forEach((link) => {
+    link.onclick = async (event) => {
+      event.preventDefault();
+
+      const selectedVideo = videoData.find(
+        (video) => String(video.id) === String(link.id)
+      );
+
+      if (!selectedVideo) {
+        return;
+      }
+
+      cardLinks.forEach((cardLink) => {
+        cardLink.classList.remove(currentLinkClassName);
+      });
+
+      link.classList.add(currentLinkClassName);
+
+      removePreloader(videoContainer, '.preloader');
+      showPreloader(preloaderTmp, videoContainer);
+
+      const previousError = videoContainer.querySelector('.error');
+
+      if (previousError) {
+        previousError.remove();
+      }
+
+      try {
         setVideo({
           baseUrl,
           video: mainVideo,
-          videoUrl: vidoObj.video.url,
-          posterUrl: vidoObj.poster.url,
+          videoUrl: selectedVideo.video.url,
+          posterUrl: selectedVideo.poster.url,
         });
+
+        mainVideo.load();
+
         await waitForReadyVideo(mainVideo);
-        await delay(preloaderWaitindTime);
+
+        mainVideo.play().catch(() => {
+          // Браузер может запрещать автоматическое воспроизведение.
+        });
+      } catch (error) {
+        console.error('Ошибка переключения видео:', error);
+
+        showError(
+          videoContainer,
+          videoNotFoundTmp,
+          'Не удалось загрузить видео :('
+        );
+      } finally {
         removePreloader(videoContainer, '.preloader');
-        console.log('Переключил видео');
-      };
-    });
-  }
+      }
+    };
+  });
 }
+
 
 // вывожу интерфейс, когда видео не найдено ✅
 function showError(container, errorTemplate, errorMessage) {
