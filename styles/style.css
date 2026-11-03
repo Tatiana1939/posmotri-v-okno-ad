@@ -293,10 +293,12 @@ video {
 /* Список видеокарточек */
 
 .content__list-container {
+  position: relative;
   max-block-size: 320px;
   overflow-y: auto;
   overflow-x: hidden;
 }
+
 
 .content__list {
   display: flex;

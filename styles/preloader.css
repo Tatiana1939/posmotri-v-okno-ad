@@ -1,24 +1,26 @@
 .preloader {
   position: absolute;
   inset: 0;
+  z-index: 2;
   display: flex;
   justify-content: center;
   align-items: center;
-  background: #545050;
+  background-color: #545050;
 }
 
 .preloader-chasing-squares {
-  width: 50px;
-  height: 50px;
-  line-height: 19px;
+  display: grid;
+  grid-template-columns: repeat(2, 15px);
+  grid-template-rows: repeat(2, 15px);
+  inline-size: 30px;
+  block-size: 30px;
 }
 
 .preloader-chasing-squares .square {
-  display: inline-block;
-  width: 15px;
-  height: 15px;
-  opacity: 1;
-  background: #fff;
+  inline-size: 15px;
+  block-size: 15px;
+  background-color: #fff;
+  opacity: 0.7;
   animation: focusfade 2.8s infinite;
 }
 
