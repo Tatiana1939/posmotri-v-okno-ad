@@ -29,23 +29,28 @@ showPreloader(preloaderTmp, cardsContainer);
 mainMechanics(endpoint);
 
 // осуществляется поиск ✅
-form.onsubmit = (e) => {
+form.addEventListener('submit', (e) => {
   e.preventDefault();
 
   cardsList.textContent = '';
+
   const buttonInDOM = cardsContainer.querySelector('.more-button');
+
   if (buttonInDOM) {
     buttonInDOM.remove();
   }
 
   [...videoContainer.children].forEach((el) => {
-    el.className === 'error' && el.remove();
+    if (el.classList.contains('error')) {
+      el.remove();
+    }
   });
 
   showPreloader(preloaderTmp, videoContainer);
   showPreloader(preloaderTmp, cardsContainer);
 
   const formData = serializeFormData(form);
+
   const requestUrl = generateFilterRequest(
     endpoint,
     formData.city,
@@ -53,13 +58,29 @@ form.onsubmit = (e) => {
   );
 
   mainMechanics(requestUrl);
-};
+});
 
+let searchController;
 /* ФУНКЦИЯ, КОТОРАЯ ВСЕ ГЕНЕРИТ */
 
 async function mainMechanics(endpoint) {
+  if (searchController) {
+    searchController.abort();
+  }
+
+  searchController = new AbortController();
+
   try {
-    const data = await (await fetch(endpoint)).json();
+    const response = await fetch(endpoint, {
+      signal: searchController.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error: ${response.status}`);
+    }
+
+    const data = await response.json();
+
     cardsOnPageState = data.results;
 
     if (!data?.results?.[0]) {
@@ -108,6 +129,9 @@ async function mainMechanics(endpoint) {
       cardTmp: cardTmp,
     });
   } catch (err) {
+    if (err.name === 'AbortError') {
+      return;
+    }
     if (err.message === 'not-found') {
       showError(videoContainer, videoNotFoundTmp, 'Нет подходящих видео =(');
     } else {
@@ -198,16 +222,29 @@ function serializeFormData(form) {
 
 // Генерирует строку с фильтрами запросов в API в зависимости от данных из формы ✅
 function generateFilterRequest(endpoint, city, timeArray) {
-  if (city) {
-    endpoint += `filters[city][$containsi]=${city}&`;
+  const params = new URLSearchParams();
+
+  const normalizedCity = city.trim();
+
+  if (normalizedCity) {
+    params.append(
+      'filters[city][$containsi]',
+      normalizedCity
+    );
   }
-  if (timeArray) {
-    timeArray.forEach((timeslot) => {
-      endpoint += `filters[time_of_day][$eqi]=${timeslot}&`;
+
+  if (timeArray.length > 0) {
+    timeArray.forEach((timeslot, index) => {
+      params.append(
+        `filters[time_of_day][$in][${index}]`,
+        timeslot
+      );
     });
   }
-  console.log('Сгенерировал строку адреса запроса в API из данных формы');
-  return endpoint;
+
+  const query = params.toString();
+
+  return query ? `${endpoint}${query}` : endpoint;
 }
 
 // переключает текущее видео ✅
