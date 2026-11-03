@@ -22,6 +22,7 @@ const moreButtonTmp = document.querySelector('.more-button-template');
 // Нужен для работы с переключателями
 let cardsOnPageState = [];
 
+let searchController;
 // Первая загрузка ✅
 
 showPreloader(preloaderTmp, videoContainer);
@@ -56,11 +57,11 @@ form.addEventListener('submit', (e) => {
     formData.city,
     formData.timeArray
   );
-
+  console.log('URL ПОИСКА:', requestUrl);
   mainMechanics(requestUrl);
 });
 
-let searchController;
+
 /* ФУНКЦИЯ, КОТОРАЯ ВСЕ ГЕНЕРИТ */
 
 async function mainMechanics(endpoint) {
@@ -355,6 +356,7 @@ function showError(container, errorTemplate, errorMessage) {
 
 // вывожу больше видео, если в пагинации больше страниц, чем показано
 
+
 function showMoreCards({
   dataArray,
   buttonTemplate,
@@ -364,33 +366,71 @@ function showMoreCards({
   baseUrl,
   cardTmp,
 }) {
-  if (dataArray.pagination.page === dataArray.pagination.pageCount) return;
-  // добавить кнопку из темплейта в конец списка карточек
-  const button = buttonTemplate.content.cloneNode(true);
-  cardsContainer.append(button);
-  // Выберем добавленный элемент по селектору и добавим слушатель клика
+  const { page, pageCount } = dataArray.pagination;
+
+  // Если следующей страницы нет, кнопку не показываем.
+  if (page >= pageCount) {
+    return;
+  }
+
+  // Создаём кнопку.
+  const buttonNode = buttonTemplate.content.cloneNode(true);
+  cardsContainer.append(buttonNode);
+
   const buttonInDOM = cardsContainer.querySelector(buttonSelector);
+
   buttonInDOM.addEventListener('click', async () => {
-    // по клику запросим данные для следующей страницы
-    let currentPage = dataArray.pagination.page;
-    let urlToFetch = `${initialEndpoint}pagination[page]=${(currentPage += 1)}&`;
+    // Защита от повторных нажатий.
+    if (buttonInDOM.disabled) {
+      return;
+    }
+
+    buttonInDOM.disabled = true;
+    buttonInDOM.textContent = 'Загрузка...';
+
     try {
-      let data = await (await fetch(urlToFetch)).json();
-      buttonInDOM.remove();
+      const nextPage = page + 1;
+
+      const urlToFetch =
+        `${initialEndpoint}pagination[page]=${nextPage}`;
+
+      const response = await fetch(urlToFetch);
+
+      if (!response.ok) {
+        throw new Error(`Ошибка загрузки: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (!Array.isArray(data.results)) {
+        throw new Error('Некорректный ответ сервера');
+      }
+
+      // Добавляем новые данные к уже загруженным.
       cardsOnPageState = cardsOnPageState.concat(data.results);
+
+      // Добавляем карточки в список.
       appendCards({
         baseUrl,
         dataArray: data.results,
         cardTmp,
         container: cardsList,
       });
+
+      // Удаляем старую кнопку.
+      buttonInDOM.remove();
+
+      // Обновляем обработчики переключения видео.
       chooseCurrentVideo({
-        baseUrl: BASE_URL,
+        baseUrl,
         videoData: cardsOnPageState,
         cardLinksSelector: '.content__card-link',
         currentLinkClassName: 'content__card-link_current',
         mainVideo: videoElement,
       });
+
+      // Показываем кнопку для следующей страницы,
+      // если она существует.
       showMoreCards({
         dataArray: data,
         buttonTemplate,
@@ -400,8 +440,12 @@ function showMoreCards({
         baseUrl,
         cardTmp,
       });
-    } catch (err) {
-      return err;
+    } catch (error) {
+      console.error('Не удалось загрузить следующие карточки:', error);
+
+      buttonInDOM.disabled = false;
+      buttonInDOM.textContent = 'Попробовать ещё раз';
     }
   });
 }
+

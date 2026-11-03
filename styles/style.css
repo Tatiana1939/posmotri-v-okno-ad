@@ -380,4 +380,73 @@ video {
   outline-offset: 2px;
 }
 
+/* Адаптивная версия */
 
+@media (max-width: 900px) {
+  .page {
+    padding-inline: 20px;
+  }
+
+  .content {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 40px;
+  }
+
+  .content__details {
+    min-width: 0;
+  }
+
+  .content__list-container {
+    max-block-size: 400px;
+  }
+}
+
+@media (max-width: 600px) {
+  .page {
+    padding-inline: 12px;
+  }
+
+  .content {
+    gap: 30px;
+  }
+
+  .title {
+    font-size: clamp(42px, 12vw, 60px);
+  }
+
+  .search-form {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .search-form__fieldset {
+    min-width: 0;
+  }
+
+  .search-form__submit-button {
+    width: 100%;
+  }
+
+  .content__video-card-title {
+    font-size: 22px;
+  }
+
+  .content__video-card-description {
+    font-size: 14px;
+  }
+
+  .content__video-card-thumbnail {
+    max-width: 35%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
