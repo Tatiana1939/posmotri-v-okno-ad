@@ -23,6 +23,7 @@ const moreButtonTmp = document.querySelector('.more-button-template');
 let cardsOnPageState = [];
 
 let searchController;
+let paginationController;
 // Первая загрузка ✅
 
 showPreloader(preloaderTmp, videoContainer);
@@ -32,6 +33,10 @@ mainMechanics(endpoint);
 // осуществляется поиск ✅
 form.addEventListener('submit', (e) => {
   e.preventDefault();
+  if (paginationController) {
+    paginationController.abort();
+    paginationController = null;
+  }
 
   cardsList.textContent = '';
 
@@ -159,11 +164,6 @@ async function delay(ms) {
 
 function waitForReadyVideo(video) {
   return new Promise((resolve, reject) => {
-    if (video.readyState >= 3) {
-      resolve();
-      return;
-    }
-
     const timeout = setTimeout(() => {
       cleanup();
       reject(new Error('Превышено время ожидания загрузки видео'));
@@ -185,27 +185,31 @@ function waitForReadyVideo(video) {
       reject(new Error('Не удалось загрузить видео'));
     }
 
-    video.addEventListener('canplay', handleReady, { once: true });
-    video.addEventListener('error', handleError, { once: true });
+    video.addEventListener('canplay', handleReady);
+    video.addEventListener('error', handleError);
+
+    video.load();
+
+    if (video.readyState >= 3) {
+      cleanup();
+      resolve();
+    }
   });
 }
 
-
 // Устанавливает прелоадер на время загрузки данных ✅
 function showPreloader(tmp, parent) {
+  removePreloader(parent, '.preloader');
+
   const node = tmp.content.cloneNode(true);
   parent.append(node);
-  console.log('показал прелоадер');
 }
 
 // Убирает прелоадер из DOM ✅
 function removePreloader(parent, preloaderSelector) {
-  const preloader = parent.querySelector(preloaderSelector);
-  if (preloader) {
+  parent.querySelectorAll(preloaderSelector).forEach((preloader) => {
     preloader.remove();
-  }
-
-  console.log('убрал прелоадер');
+  });
 }
 
 // Добавляет карточки в контейнер, собирая их из данных API ✅
@@ -394,7 +398,11 @@ function showMoreCards({
       const urlToFetch =
         `${initialEndpoint}pagination[page]=${nextPage}`;
 
-      const response = await fetch(urlToFetch);
+      paginationController = new AbortController();
+
+      const response = await fetch(urlToFetch, {
+        signal: paginationController.signal,
+      });
 
       if (!response.ok) {
         throw new Error(`Ошибка загрузки: ${response.status}`);
@@ -441,6 +449,9 @@ function showMoreCards({
         cardTmp,
       });
     } catch (error) {
+      if (error.name === 'AbortError') {
+        return;
+      }
       console.error('Не удалось загрузить следующие карточки:', error);
 
       buttonInDOM.disabled = false;
